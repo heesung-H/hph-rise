@@ -18,6 +18,7 @@ public class ApiController {
     @Autowired
     private ApiService apiService;
 
+    /*유저 정보*/
     @GetMapping("/users")
     public List<?> user() {
         return apiService.findUserList();
