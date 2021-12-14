@@ -22,7 +22,7 @@ public class LoginController {
      */
     @GetMapping("/")
     public String login(){
-        return "/login/login.html";
+        return "login/login";
     }
 
     /**
@@ -30,7 +30,7 @@ public class LoginController {
      * @return
      */
     @GetMapping("/signUp")
-    public String signUp() { return "/login/signUp.html";}
+    public String signUp() { return "login/signUp";}
 
     //로그인 처리
 

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>회원가입</title>
+    <style>
+        .id,.nickname{
+            color: red;
+            margin: 0;
+        }
+        .birth{
+            width:50px;
+            text-align: center;
+        }
+        .pNumber{
+            width:50px;
+            text-align: center;
+        }
+    </style>
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src='./js/script.js'></script>
+    <script>
+        function sample6_execDaumPostcode() {
+            new daum.Postcode({
+                oncomplete: function (data) {
+                    // 팝업에서 검색결과 항목을 클릭했을때 실행할 코드를 작성하는 부분
+
+                    // 각 주소의 노출 규칙에 따라 주소를 조합한다
+                    // 내려오는 변수가 값이 없는 경우엔 공백('')값을 가지므로, 이를 참고하여 분기 한다
+                    var addr = ''; // 주소 변수
+                    var extraAddr = ''; // 참고항목 변수
+
+                    //사용자가 선택한 주소 타입에 따라 해당 주소 값을 가져온다.
+                    if (data.userSelectedType === 'R') { // 사용자가 도로명 주소를 선택했을 경우
+                        addr = data.roadAddress;
+                    } else { // 사용자가 지번 주소를 선택했을 경우(J)
+                        addr = data.jibunAddress;
+                    }
+
+                    // 사용자가 선택한 주소가 도로명 타입일때 참고항목을 조합한다.
+                    if (data.userSelectedType === 'R') {
+                        // 법정동명이 있을 경우 추가한다. (법정리는 제외)
+                        // 법정동의 경우 마지막 문자가 "동/로/가"로 끝난다.
+                        if (data.bname !== '' && /[동|로|가]$/g.test(data.bname)) {
+
+                            extraAddr += data.bname;
+
+                        }
+                        // 건물명이 있고, 공동주택일 경우 추가한다.
+                        if (data.buildingName !== '' && data.apartment === 'Y') {
+                            extraAddr += (extraAddr !== '' ? ', ' + data.buildingName : data.buildingName);
+
+                        }
+                        // 표시할 참고항목이 있을 경우, 괄호까지 추가한 최종 문자열을 만든다.
+                        if (extraAddr !== '') {
+                            extraAddr = '(' + extraAddr + ')'; // 참고항목 : 동을 표시 ex : 임수동, 제기동
+                        }
+                        // 조합된 참고항목을 해당 필드에 넣는다.
+                        document.getElementById("extraAddress").value = extraAddr;
+                        document.getElementById('zipCode').value = data.zonecode;
+                        document.getElementById("baseAddress").value = addr;
+                        document.getElementById("detailedAddress").focus();
+
+                    } else {
+                        document.getElementById("extraAddress").value = '';
+                        document.getElementById('zipCode').value = data.zonecode;
+                        document.getElementById("baseAddress").value = addr;
+                        document.getElementById("detailedAddress").focus();
+                    }
+
+                    // 우편번호와 주소 정보를 해당 필드에 넣는다.
+                    /*document.getElementById('sample6_postcode').value = data.zonecode;
+                    document.getElementById("sample6_address").value = addr;
+                    // 커서를 상세주소 필드로 이동한다.
+                    document.getElementById("sample6_detailAddress").focus();*/
+                }
+            }).open();
+        }
+    </script>
+</head>
+<body>
+<div layout:fragment="content2">
+    <div style="float: left; width: 80%; min-height: 500px;">
+        <!--<div style="width:80%; margin: 10px  auto;">-->
+        <div style="width:800px;">
+            <form action="/login/signUp" method="post" name="userInfo">
+                <h1>필수 정보</h1>
+                <table style="width: 100%;">
+                    <colgroup>
+                        <col width="20%">
+                        <col width="*">
+                    </colgroup>
+                    <tbody id="necessary">
+                    <tr>
+                        <th>*아이디</th>
+                        <td>
+                            <input type="text" id="userId" name="userId" maxlength="20" onkeydown="inputIdChk()">
+                            <input type="button" value="중복확인" onclick="openIdChk()">
+                            <input type="hidden" id="idDuplication" name="idDuplication" value="idUncheck">
+                            <p class="id">*한글 및 특수문자는 아이디로 사용하실수 없습니다.</p>
+                        </td>
+                    </tr>
+                    <!-- 패스워드 -->
+                    <tr>
+                        <th>*패스워드</th>
+                        <td>
+                            <input type="password" placeholder="패스워드를 입력하세요." id="pass" name="pass">
+                            <input type="button" id="showPassword" value="비밀번호 표시">
+                            <p id="passMag"></p>
+                            <!--<span th:if=""></span>-->
+                        </td>
+                    </tr>
+                    <!-- 패스워드 확인-->
+                    <tr>
+                        <th>*패스워드 확인</th>
+                        <td>
+                            <input type="password" placeholder="한번더 패스워드를 입력하세요" id="passCheck" name="passCheck">
+                            <p id="passCheckMag"></p>
+                            <!--<span th:if=""></span>-->
+                        </td>
+                    </tr>
+                    <!-- 이름 -->
+                    <tr>
+                        <th>*이름</th>
+                        <td><input id="name" name="name" placeholder="이름을 입력해주세요."></td>
+                    </tr>
+                    <!-- 닉네임 -->
+                    <tr>
+                        <th><abbr th:title="@{'아이디 대신 사용하실 닉네임입니다.' + <br> + '닉네임을 입력하지 않으시면 아이디가 노출이 됩니다.'}">닉네임</abbr></th>
+                        <td>
+                            <input type="text" id="nickname" name="nickname" maxlength="10" >
+                            <p class="nickname">* 아이디 대신 사용하실 닉네임입니다.</p>
+                            <p class="nickname">* 닉네임을 입력하지 않으시면 아이디가 노출이 됩니다.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            우편번호
+                        </th>
+                        <td>
+                            <p>
+                                <label>
+                                    <input type="text" size="5" maxlength="5" name="zipCode" id="zipCode" placeholder="우편번호">
+                                    <input type="button" value="우편번호 검색" onclick="sample6_execDaumPostcode()">
+                                </label>
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            주소
+                        </th>
+                        <td>
+                            <input type="text" id="baseAddress" name="baseAddress" placeholder="주소">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            상세주소
+                        </th>
+                        <td>
+                            <input type="text" id="detailedAddress" name="detailedAddress" placeholder="상세주소">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>참고사항</th>
+                        <td>
+                            <input type="text" name="address3" id="extraAddress" placeholder="참고항목">
+                        </td>
+                    </tr>
+                    <!-- 휴대폰번호 -->
+                    <tr>
+                        <th>*휴대폰번호</th>
+                        <td>
+                            <input type="hidden" id="phoneNumber" name="phoneNumber">
+                            <select id="pNumber1" class="pNumber">
+                                <option>010</option>
+                                <option>011</option>
+                                <option>016</option>
+                                <option>017</option>
+                                <option>018</option>
+                                <option>019</option>
+                            </select>
+                            -
+                            <input type="text" maxlength="4" id="pNumber2" class="pNumber">
+                            -
+                            <input type="text" maxlength="4" id="pNumber3" class="pNumber">
+                            <input type="button" value="휴대폰체크" onclick="phoneChk()">
+                            <input type="hidden" id="phoneDuplication" name="phoneDuplication" value="phone">
+                        </td>
+                    </tr>
+                    <!-- 성별 -->
+                    <tr>
+                        <th>*성별</th>
+                        <td><span>남성</span><input type="radio" name="gender" value="M" style="margin: 0 10px;">  <span>여성</span><input type="radio" name="gender" value="W" style="margin: 0 10px;"></td>
+                    </tr>
+                    <!-- 생년월일 -->
+                    <tr>
+                        <th>*생년월일</th>
+                        <td>
+                            <input type="hidden" id="dateOfBirth" name="dateOfBirth">
+                            <input id="birthYy" class="birth" maxlength="4"><span>년</span>
+                            <input id="birthMm" class="birth" maxlength="2"><span>월</span>
+                            <input id="birthDd" class="birth" maxlength="2"><span>일</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>*이메일</th>
+                        <td>
+                            <input type="email" id="nameEmail" name="nameEmail">
+                            <samp><b>@</b></samp>
+                            <select id="emailAllowingYn" onchange="mailSum()">
+                                <option value="">이메일 선택</option>
+                                <option value="hanmail.net">hanmail.net</option>
+                                <option value="naver.com">naver.com</option>
+                                <option value="gmail.com">gmail.com</option>
+                                <option value="nate.com">nate.com</option>
+                                <option value="hotmail.com">hotmail.com</option>
+                                <option value="paran.com">paran.com</option>
+                                <option value="empal.com">empal.com</option>
+                                <option value="korea.com">korea.com</option>
+                                <option value="freechal.com">freechal.com</option>
+                                <option value="etc">직접 등록</option>
+                            </select>
+                            <input type="text" id="emailType" style="visibility: hidden;">
+                            <input type="hidden" id="email" neme="email">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>이메일 수신여부</th>
+                        <td><input type="radio" name="emailAllowingYn" value="Y">동의</input><input type="radio" name="emailAllowingYn" value="N">거부</input></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <table style="width: 100%;">
+                    <colgroup>
+                        <col width="20%">
+                        <col width="*">
+                    </colgroup>
+                    <tbody id="optional">
+                    <tr>
+                        <th colspan="2"><h1>선택 정보</h1></th>
+                    </tr>
+                    <tr>
+                        <th>관심분야1</th>
+                        <td>
+                            <select id="interest1" name="interest1">
+                                <option>-- 관심분야 --</option>
+                                <option>공포</option>
+                                <option>심리</option>
+                                <option>다큐</option>
+                                <option>스릴러</option>
+                                <option>코믹</option>
+                                <option>무협</option>
+                                <option>전쟁</option>
+                                <option>판타지</option>
+                                <option>액션</option>
+                                <option>멜로</option>
+                                <option>성인</option>
+                                <option>드라마</option>
+                                <option>기타</option>
+                            </select>
+                            <input type="text" style="visibility: hidden">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>관심분야2</th>
+                        <td>
+                            <select id="interest2" name="interest2">
+                                <option>-- 관심분야 --</option>
+                                <option>공포</option>
+                                <option>심리</option>
+                                <option>다큐</option>
+                                <option>스릴러</option>
+                                <option>코믹</option>
+                                <option>무협</option>
+                                <option>전쟁</option>
+                                <option>판타지</option>
+                                <option>액션</option>
+                                <option>멜로</option>
+                                <option>성인</option>
+                                <option>드라마</option>
+                                <option>기타</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>관심분야3</th>
+                        <td>
+                            <select id="interest3" name="interest3">
+                                <option>-- 관심분야 --</option>
+                                <option>공포</option>
+                                <option>심리</option>
+                                <option>다큐</option>
+                                <option>스릴러</option>
+                                <option>코믹</option>
+                                <option>무협</option>
+                                <option>전쟁</option>
+                                <option>판타지</option>
+                                <option>액션</option>
+                                <option>멜로</option>
+                                <option>성인</option>
+                                <option>드라마</option>
+                                <option>기타</option>
+                            </select>
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tbody id="terms">
+                    <tr>
+                        <th>약관동의</th>
+                        <td>
+                            <textarea th:insert="/login/terms.html" style="width:100%; height: 200px;"></textarea>
+                            <input type="checkbox"><span>동의</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>개인정보 수집 <br>및 이용동의</th>
+                        <td>
+                            <textarea th:insert="/login/terms2.html" style="width:100%; height: 200px;"></textarea>
+                            <input type="checkbox" id="perIAgreementYn" name="perIAgreementYn"><span>동의</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div style="text-align: right">
+                    <input type="button" onclick="checkValue()" value="등록하기">
+                    <input type="button" onclick="" value="취소">
+                    <button type="reset">초기화</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div style="float: left; width: 10%; min-height: 500px;" th:insert="layout/"></div>
+</div>
+<!--<footer th:insert="layout/footer.html"></footer>-->
+<script type="text/javascript">
+    /* 아이디 중복체크 */
+    /*$("#doubleCheck").click(function (){
+       alert("중복확인");
+       var id = $("#id").val();
+       alert("id ::: " + id);
+       $.ajax({
+           type :'post'
+           , url : '/login/doubleCheck'
+           , data : id
+           , success:function(data){
+               if('Y' == data.id){
+                   alert("중복 아이디입니다. 다른 아이디를 입력해주세요.")
+               }
+               else if('N' == data.id){
+                   alert("중복 아이디가 아닙니다.")
+               }
+           }
+       })
+    });*/
+
+    /*
+    ** 비밀번호 생성규칙
+    1. 비밀번호의 길이는 최소 8자리 이상으로 설정
+    2. 비밀번호는 반드시 영문, 숫자, 특수문자의 조합으로 구성되어야 한다.
+    (영문, 숫자 등 두 가지 조합만으로 이용한 비밀번호는 생성 불가하다.)
+    3. 연속되는 숫자 또는 문자, 영문은 3자리 이상 사용 할 수 없다.
+    4. 아이디와 동일하거나 3자리 이상 일치하는 비밀번호는 사용 할 수 없다.
+    */
+
+    /* 비밀번호 체크 */
+    $("#pass").keyup(function(){
+        var pass = document.userInfo;
+        /*var regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$/;*/
+        var regex = /^.*(?=^.{8,15}$)(?=.*\d)(?=.*[a-zA-Z])(?=.*[!@#$%^&+=]).*$/;
+        /*"^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$"*/
+
+        if(!regex.test($("input[id='pass']").val())){
+            document.getElementById("passMag").innerHTML = "비밀번호형식에 문제가 있습니다. 확인 부탁드립니다."
+            /*alert("비밀번호형식에 문제가 있습니다. 확인 부탁드립니다.")*/
+            return false;
+        }
+        else{
+            document.getElementById("passMag").innerHTML = "비밀번호로 사용 가능합니다."
+        }
+        /*document.getElementById("pass").val =
+        document.getElementById("passMag").innerHTML = "숫자와 문자 포함형태의 10자리이상을 입력해 주세요"*/
+    });
+
+    // 비밀번호 표시/숨기기
+    $(document).ready(function(){
+
+        // Click event of the showPassword button
+        $('#showPassword').on('click', function(){
+            // Get the password field
+            var passwordField = $('#pass');
+
+            // Get the current type of the password field will be password or text
+            var passwordFieldType = passwordField.attr('type');
+
+            // Check to see if the type is a password field
+            if(passwordFieldType == 'password')
+            {
+                // Change the password field to text
+                passwordField.attr('type', 'text');
+
+                // Change the Text on the show password button to Hide
+                $(this).val('비밀번호 숨김');
+
+            } else {
+                // If the password field type is not a password field then set it to password
+                passwordField.attr('type', 'password');
+
+                // Change the value of the show password button to Show
+                $(this).val('비밀번호 표시');
+            }
+        });
+    });
+
+    /* 비밀번호 확인 체크 */
+    $("#passCheck").keyup(function(){
+        var form = document.userInfo;
+        var pass = document.getElementById("pass").value;
+        var passCheck = document.getElementById("passCheck").value;
+        /*alert("비밀번호1 ::: " + pass + ", 비밀번호2 ::: " + passCheck );*/
+        if(pass != passCheck){
+            document.getElementById("passCheckMag").innerHTML = "비밀번호가 다릅니다. 다시 입력해주세요."
+            return false;
+        }
+        else{
+            document.getElementById("passCheckMag").innerHTML = "비밀번호가 같습니다. 사용 가능합니다."
+        }
+
+    });
+
+    // 우편번호 검색
+    function zipCheck(){
+        // 우편번호 검색창 띄우기
+        window.open("/login/zipCheck", "zipchkForm", "width=500, height=300, resizable = no, scrolbars = no");
+    }
+
+    // 회원가입 화면의 입력값들을 검사(id,pw, pw 일치여부, 이름 )
+    function checkValue(){
+
+        var form = document.userInfo;
+        var regex = /^.*(?=^.{8,15}$)(?=.*\d)(?=.*[a-zA-Z])(?=.*[!@#$%^&+=]).*$/;
+
+        if(!form.userId.value){
+            alert("아이디를 입력하세요.");
+            // 아이디 입력칸으로 포커스 작성 예정
+            form.userId.focus();
+            return false;
+        }
+        if(form.idDuplication.value != form.userId.value){
+            alert("아이디 중복체크를 해주세요.");
+            return false;
+        }
+        if(!form.pass.value){
+            alert("비밀번호를 입력하세요.");
+            form.pass.focus();
+            return false;
+        }
+        if(!regex.test($("input[id='pass']").val())){
+
+            alert("비밀번호형식에 문제가 있습니다. 확인 부탁드립니다.")
+            return false;
+        }
+        // 비밀번호와 비밀번호 확인에 입력된 값이 동일한지 확인
+        if(form.pass.value != form.passCheck.value){
+            alert("비밀번호를 동일하게 입력해주세요.");
+            return false;
+        }
+        if(!form.name.value){
+            alert("이름을 입력하세요.");
+            form.name.focus();
+            return false;
+        }
+        if(!form.birthYy.value){
+            alert("년도를 입력하세요.");
+            form.birthYy.focus();
+            return false;
+        }
+        if(isNaN(form.birthYy.value)){
+            alert("년도는 숫자만 입력가능합니다.");
+            form.birthYy.focus();
+            return false;
+        }
+        if(!form.birthMm.value){
+            alert("월을 입력하세요.");
+            form.birthMm.focus();
+            return false;
+        }
+        if(isNaN(form.birthMm.value)){
+            alert("월은 숫자만 입력가능합니다.");
+            form.birthMm.focus();
+            return false;
+        }
+        if(!form.birthDd.value){
+            alert("일을 입력하세요.");
+            form.birthDd.focus();
+            return false;
+        }
+        if(isNaN(form.birthDd.value)){
+            alert("일은 숫자만 입력가능합니다.")
+            form.birthDd.focus();
+            return false;
+        }
+        if(!form.gender.value){
+            alert("성별을 골라주세요");
+            return false;
+        }
+        if(form.phoneDuplication.value != form.phoneNumber.value){
+            alert("휴대폰 중복체크를 해주세요");
+            document.getElementById("phoneDuplication").focus();
+            return false;
+        }
+        document.getElementById("dateOfBirth").value = document.getElementById("birthYy").value
+            + document.getElementById("birthMm").value
+            + document.getElementById("birthDd").value;
+        if (confirm("회원가입하시겠습니까?")){
+            form.submit();
+        }
+    }
+
+    // 아이디 중복체크 화면 open
+    function openIdChk(){
+        window.name = "parentForm";
+        /*window.open("/login/idCheckForm", form.id.value, "width=500, height=300, resizable = no, scrolbars = no");*/
+        /*window.open("/login/idCheckForm/" + id, "chkForm", "width=500, height=300, resizable = no, scrolbars = no");*/
+        window.open("/login/idCheckForm", "chkForm", "width=500, height=300, resizable = no, scrolbars = no");
+    }
+
+    // 아이디 입력창에 값 입력시 hidden에 idUncheck를 세팅한다.
+    // 이렇게 하는 이유는 중복체크 후 다시 아이디 차이 새로운 아이디를 입력 했을때 다시 중복체크를 하도록 한다.
+    function inputIdChk(){
+        document.userInfo.idDuplication.value = "idUncheck";
+    }
+
+    function phoneChk(){
+
+        var phone = document.getElementById("pNumber1").value
+            + document.getElementById("pNumber2").value
+            + document.getElementById("pNumber3").value;
+        $.ajax({
+            type : 'post'
+            , url : '/login/phoneCheck'
+            , dataType : "json"
+            , data : {"phoneNumber" : phone}
+            , success : function(data){
+                if(data == '1'){
+                    alert("해당 전화번호는 이미 등록이 된 번호입니다.\n 확인 후, 다시 등록하시기 바랍니다.");
+                }
+                else if(data == '0'){
+                    alert("해당 전화번호는 등록이 가능합니다.")
+                    document.getElementById("phoneNumber").value = phone;
+                    document.getElementById("phoneDuplication").value = phone;
+                }
+            }
+            , error(){
+                alert("휴대폰체크 중 오류 발생!!!")
+            }
+        })
+    }
+    /*$("emailAddrSelect").change(function (){
+        var year
+    })    */
+    function mailSum(){
+        var emailType = document.getElementById("emailAllowingYn").value;
+
+        if(emailType == 'etc'){
+            document.getElementById("emailType").style.visibility='visible';
+        }
+        else if(emailType != 'etc'){
+            document.getElementById("emailType").style.visibility='hidden';
+            document.getElementById("email").value = document.getElementById("nameEmail").value + '@' + emailType;
+        }
+    }
+
+</script>
+</body>
+</html>
